@@ -1,0 +1,21 @@
+verificar os security groups
+
+aws eks describe-nodegroup \
+  --cluster-name togglemaster-cluster \
+  --nodegroup-name togglemaster-nodegroup \
+  --region us-east-1 \
+  --profile lab
+
+------------------------------------
+  Ao ativar o lab:
+  aws configure --profile lab
+
+  E verificar:
+  aws sts get-caller-identity --profile lab
+
+ configurar o kubectl para aws
+
+  aws eks update-kubeconfig \
+  --name togglemaster-cluster \
+  --region us-east-1 \
+  --profile lab

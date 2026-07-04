@@ -1,0 +1,44 @@
+Repositorios ECR
+
+943048301123.dkr.ecr.us-east-1.amazonaws.com/analytics-service
+943048301123.dkr.ecr.us-east-1.amazonaws.com/auth-service
+943048301123.dkr.ecr.us-east-1.amazonaws.com/evaluation-service
+943048301123.dkr.ecr.us-east-1.amazonaws.com/flag-service
+943048301123.dkr.ecr.us-east-1.amazonaws.com/targeting-service
+
+Comando para logar:
+aws ecr get-login-password --region us-east-1 --profile lab | docker login --username AWS --password-stdin 943048301123.dkr.ecr.us-east-1.amazonaws.com
+
+Comandos para tagear as imagens:
+
+```
+docker tag toggle-master-microservices-auth-service:latest \
+943048301123.dkr.ecr.us-east-1.amazonaws.com/auth-service:latest
+
+docker tag toggle-master-microservices-flag-service:latest \
+943048301123.dkr.ecr.us-east-1.amazonaws.com/flag-service:latest
+
+docker tag toggle-master-microservices-targeting-service:latest \
+943048301123.dkr.ecr.us-east-1.amazonaws.com/targeting-service:latest
+
+docker tag toggle-master-microservices-evaluation-service:latest \
+943048301123.dkr.ecr.us-east-1.amazonaws.com/evaluation-service:latest
+
+docker tag toggle-master-microservices-analytics-service:latest \
+943048301123.dkr.ecr.us-east-1.amazonaws.com/analytics-service:latest
+```
+
+Comandos para fazer o push:
+
+```
+docker push 943048301123.dkr.ecr.us-east-1.amazonaws.com/auth-service:latest
+
+docker push 943048301123.dkr.ecr.us-east-1.amazonaws.com/flag-service:latest
+
+docker push 943048301123.dkr.ecr.us-east-1.amazonaws.com/targeting-service:latest
+
+docker push 943048301123.dkr.ecr.us-east-1.amazonaws.com/evaluation-service:latest
+
+docker push 943048301123.dkr.ecr.us-east-1.amazonaws.com/analytics-service:latest
+```
+

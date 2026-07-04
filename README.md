@@ -841,3 +841,287 @@ Na sequencia, dar o comando: docker compose down e, depois um docker compose up.
 
 
 
+## 4 Deploy da Infraestrutura na AWS - AWS Academy
+
+### 4.1 Configuração do Cluster e da Escalabilidade dos Nós
+
+Não foi necessário criar a VPC, e foi usada a VPC do lab e a Role LabRole.
+
+Para o Cluster foram definidas as Subnets us-east 1a e 1b.
+
+![image-20260704142257614](../toggle-master-microservices/img/image-20260704142257614.png)
+
+Criando a Escalabilidade do Node Group:
+
+![image-20260704142127759](../toggle-master-microservices/img/image-20260704142127759.png)
+
+Configuração dos nós:
+
+![image-20260704142057606](../toggle-master-microservices/img/image-20260704142057606.png)
+
+#### Ativação das Metricas:
+
+Durante a criação do Cluster EKS, já foi ativado o o Metrics Server como add-on gerenciado pela AWS, portanto não foi necessário aplicar o manifesto manualmente.
+
+<img src="file:///home/gerusa/Imagens/Captura%20de%20tela%20de%202026-07-04%2014-00-43.png" style="zoom:150%;" />
+
+
+
+#### Nginx Ingress Controller 
+
+A ativação do Nginx foi através de comandos:
+
+```
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+```
+
+```
+helm install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --create-namespace \
+  --set controller.admissionWebhooks.enabled=false \
+  --set controller.service.type=LoadBalancer \
+  --set controller.publishService.enabled=true
+```
+
+**Importante: para o Lab, foi necessário configurar o Webhook como falso.**
+
+Sem essa configuração, ele não instalava corretamente.
+
+Além disso, após a instalação os pods ainda estavam crashando, e foi necessário verificar o motivo:
+
+```
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ kubectl describe pod -n ingress-nginx ingress-nginx-controller-5486dbd97f-lk6c7
+Name:             ingress-nginx-controller-5486dbd97f-lk6c7
+Namespace:        ingress-nginx
+Priority:         0
+Service Account:  ingress-nginx
+Node:             ip-172-31-91-181.ec2.internal/172.31.91.181
+Start Time:       Sat, 04 Jul 2026 17:01:14 -0300
+Labels:           app.kubernetes.io/component=controller
+                  app.kubernetes.io/instance=ingress-nginx
+                  app.kubernetes.io/managed-by=Helm
+                  app.kubernetes.io/name=ingress-nginx
+                  app.kubernetes.io/part-of=ingress-nginx
+                  app.kubernetes.io/version=1.15.1
+                  helm.sh/chart=ingress-nginx-4.15.1
+                  pod-template-hash=5486dbd97f
+                  topology.kubernetes.io/region=us-east-1
+                  topology.kubernetes.io/zone=us-east-1a
+Annotations:      <none>
+Status:           Running
+IP:               172.31.88.205
+IPs:
+  IP:           172.31.88.205
+Controlled By:  ReplicaSet/ingress-nginx-controller-5486dbd97f
+Containers:
+  controller:
+    Container ID:    containerd://3b5c9c191bd1093ad27d1bfaf77f37d6a71af0254bb0783a3f38c5b4e86181e2
+    Image:           registry.k8s.io/ingress-nginx/controller:v1.15.1@sha256:594ceea76b01c592858f803f9ff4d2cb40542cae2060410b2c95f75907d659e1
+    Image ID:        registry.k8s.io/ingress-nginx/controller@sha256:594ceea76b01c592858f803f9ff4d2cb40542cae2060410b2c95f75907d659e1
+    Ports:           80/TCP, 443/TCP
+    Host Ports:      0/TCP, 0/TCP
+    SeccompProfile:  RuntimeDefault
+    Args:
+      /nginx-ingress-controller
+      --publish-service=$(POD_NAMESPACE)/ingress-nginx-controller
+      --election-id=ingress-nginx-leader
+      --controller-class=k8s.io/ingress-nginx
+      --ingress-class=nginx
+      --configmap=$(POD_NAMESPACE)/ingress-nginx-controller
+    State:          Running
+      Started:      Sat, 04 Jul 2026 17:25:24 -0300
+    Last State:     Terminated
+      Reason:       Error
+      Exit Code:    143
+      Started:      Sat, 04 Jul 2026 17:24:28 -0300
+      Finished:     Sat, 04 Jul 2026 17:25:24 -0300
+    Ready:          False
+    Restart Count:  11
+    Requests:
+      cpu:      100m
+      memory:   90Mi
+    Liveness:   http-get http://:10254/healthz delay=10s timeout=1s period=10s #success=1 #failure=5
+    Readiness:  http-get http://:10254/healthz delay=10s timeout=1s period=10s #success=1 #failure=3
+    Environment:
+      POD_NAME:       ingress-nginx-controller-5486dbd97f-lk6c7 (v1:metadata.name)
+      POD_NAMESPACE:  ingress-nginx (v1:metadata.namespace)
+      LD_PRELOAD:     /usr/local/lib/libmimalloc.so
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-bjwl8 (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True 
+  Initialized                 True 
+  Ready                       False 
+  ContainersReady             False 
+  PodScheduled                True 
+Volumes:
+  kube-api-access-bjwl8:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              kubernetes.io/os=linux
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason             Age                   From               Message
+  ----     ------             ----                  ----               -------
+  Normal   Scheduled          24m                   default-scheduler  Successfully assigned ingress-nginx/ingress-nginx-controller-5486dbd97f-lk6c7 to ip-172-31-91-181.ec2.internal
+  Normal   Pulling            24m                   kubelet            Pulling image "registry.k8s.io/ingress-nginx/controller:v1.15.1@sha256:594ceea76b01c592858f803f9ff4fd2cb40542cae2060410b2c95f75907d659e1"
+  Normal   Pulled             24m                   kubelet            Successfully pulled image "registry.k8s.io/ingress-nginx/controller:v1.15.1@sha256:594ceea76b01c592858f803f9ff4d2cb40542cae2060410b2c95f75907d659e1" in 3.993s (3.993s including waiting). Image size: 115975561 bytes.
+  Warning  FailedPreStopHook  22m (x2 over 23m)     kubelet            PreStopHook failed
+  Warning  Unhealthy          22m (x11 over 24m)    kubelet            Liveness probe failed: Get "http://172.31.88.205:10254/healthz": dial tcp 172.31.88.205:10254: connect: connection refused
+  Normal   Created            20m (x6 over 24m)     kubelet            Container created
+  Normal   Started            20m (x6 over 24m)     kubelet            Container started
+  Normal   Killing            19m (x6 over 23m)     kubelet            Container controller failed liveness probe, will be restarted
+  Warning  Unhealthy          7m53s (x44 over 24m)  kubelet            Readiness probe failed: Get "http://172.31.88.205:10254/healthz": dial tcp 172.31.88.205:10254: connect: connection refused
+  Warning  BackOff            3m39s (x15 over 19m)  kubelet            Back-off restarting failed container controller in pod ingress-nginx-controller-5486dbd97f-lk6c7_ingress-nginx(7a008ec7-5cdd-4d8c-b860-523f780d0940)
+  Normal   Pulled             72s (x10 over 23m)    kubelet            Container image "registry.k8s.io/ingress-nginx/controller:v1.15.1@sha256:594ceea76b01c592858f803f9ff4d2cb40542cae2060410b2c95f75907d659e1" already present on machine and can be accessed by the pod
+```
+
+Identificamos:
+
+ **Warning  Unhealthy          22m (x11 over 24m)    kubelet            Liveness probe failed: Get "http://172.31.88.205:10254/healthz": dial tcp 172.31.88.205:10254: connect: connection refused**
+
+Foi feito então um upgrade na configuração para uma versão mais estável.
+
+```
+helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --set controller.admissionWebhooks.enabled=false \
+  --set controller.service.type=LoadBalancer \
+  --set controller.publishService.enabled=true \
+  --set controller.image.tag=v1.11.2
+```
+
+ Após a instalação e upgrade o load balance está funcionando corretamente:
+
+![image-20260704173633830](../toggle-master-microservices/img/image-20260704173633830.png)
+
+### 4.2 Registro de Conteineres (ECR)
+
+Criação dos 5 Repositórios:
+
+![image-20260704142944238](../toggle-master-microservices/img/image-20260704142944238.png)
+
+Para fazer o deploy das imagens no ECR foram usados os seguintes comandos:
+
+Logar pelo CLI da AWS, criando um profile lab para não conflitar com o local, onde roda o DynamoDB
+
+```
+aws ecr get-login-password --region us-east-1 --profile lab | docker login --username AWS --password-stdin 943048301123.dkr.ecr.us-east-1.amazonaws.com
+```
+
+Comandos para tagear as imagens:
+
+```
+docker tag toggle-master-microservices-auth-service:latest \
+943048301123.dkr.ecr.us-east-1.amazonaws.com/auth-service:latest
+
+docker tag toggle-master-microservices-flag-service:latest \
+943048301123.dkr.ecr.us-east-1.amazonaws.com/flag-service:latest
+
+docker tag toggle-master-microservices-targeting-service:latest \
+943048301123.dkr.ecr.us-east-1.amazonaws.com/targeting-service:latest
+
+docker tag toggle-master-microservices-evaluation-service:latest \
+943048301123.dkr.ecr.us-east-1.amazonaws.com/evaluation-service:latest
+
+docker tag toggle-master-microservices-analytics-service:latest \
+943048301123.dkr.ecr.us-east-1.amazonaws.com/analytics-service:latest
+```
+
+E para fazer o push:
+
+```
+docker push 943048301123.dkr.ecr.us-east-1.amazonaws.com/auth-service:latest
+
+docker push 943048301123.dkr.ecr.us-east-1.amazonaws.com/flag-service:latest
+
+docker push 943048301123.dkr.ecr.us-east-1.amazonaws.com/targeting-service:latest
+
+docker push 943048301123.dkr.ecr.us-east-1.amazonaws.com/evaluation-service:latest
+
+docker push 943048301123.dkr.ecr.us-east-1.amazonaws.com/analytics-service:latest
+```
+
+Imagens foram devidamentes enviadas para a AWS:
+
+![image-20260704152127143](../toggle-master-microservices/img/image-20260704152127143.png)
+
+![image-20260704152146998](../toggle-master-microservices/img/image-20260704152146998.png)
+
+![image-20260704152212837](../toggle-master-microservices/img/image-20260704152212837.png)
+
+![image-20260704152231472](../toggle-master-microservices/img/image-20260704152231472.png)
+
+![image-20260704152253988](../toggle-master-microservices/img/image-20260704152253988.png)
+
+Para cada um foram criadas 3 imagens, onde:
+
+![image-20260704152333953](../toggle-master-microservices/img/image-20260704152333953.png)
+
+Onde:
+
+- index (latest) - aponta para a imagem
+
+- image real
+
+- config image - arquivo de configuração
+
+
+
+### 4.3 Criação dos Bancos RDS, Dynamo, SQS e  Redis
+
+#### Bancos RDS
+
+Para a criação dos Bancos RDS, estamos usando a default VPC e o SG: eks-cluster-sg-togglemaster-cluster-1612712477 que no lab, atende tanto o cluster como os node-group.
+
+![image-20260704161654267](../toggle-master-microservices/img/image-20260704161654267.png)
+
+auth-db, flag-db e targeting-db
+
+Bancos Postgres na Porta 5432
+
+
+
+#### Redis
+
+Para o Redis também estamos usando a default VPC e o SG: eks-cluster-sg-togglemaster-cluster-1612712477 que no lab, atende tanto o cluster como os node-group, nas subnets 1a e 1b.
+
+
+
+toggle-redis
+
+arn:aws:elasticache:us-east-1:943048301123:serverlesscache:toggle-redis
+
+toggle-redis-gi0ucv.serverless.use1.cache.amazonaws.com:6379
+
+![image-20260704170409173](../toggle-master-microservices/img/image-20260704170409173.png)
+
+
+
+#### SQS
+
+O SQS é o mesmo usado no teste local.
+
+togglemaster-events
+
+https://sqs.us-east-1.amazonaws.com/943048301123/togglemaster-events
+
+arn:aws:sqs:us-east-1:943048301123:togglemaster-events
+
+![image-20260704170839180](../toggle-master-microservices/img/image-20260704170839180.png)
+
+
+
+#### Dynamo DB
+
+arn:aws:dynamodb:us-east-1:943048301123:table/ToggleMasterAnalytics
+
+![image-20260704170917901](../toggle-master-microservices/img/image-20260704170917901.png)

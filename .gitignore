@@ -1,7 +1,7 @@
-.env
+docker/.env
 testes
-auth-service-main/_doc ajustes auth para rodar
-flag-service-main/_doc ajustes para rodar
-targeting-service-main/_doc ajustes para rodar
-evaluation-service-main/_docs ajustes para rodar
-doc
+docker/auth-service-main/_doc ajustes auth para rodar
+docker/flag-service-main/_doc ajustes para rodar
+docker/targeting-service-main/_doc ajustes para rodar
+docker/evaluation-service-main/_docs ajustes para rodar
+docker/doc

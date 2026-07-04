@@ -1,0 +1,27 @@
+auth-db
+postgres
+EloCps123!
+Porta: 5432
+
+flag-db
+postgres
+EloCps123!
+Porta: 5432
+
+targeting-db
+postgres
+EloCps123!
+Porta: 5432
+
+Redis: 
+Arn: arn:aws:elasticache:us-east-1:943048301123:serverlesscache:toggle-redis
+Endpoint: toggle-redis-gi0ucv.serverless.use1.cache.amazonaws.com:6379
+
+SQS:
+togglemaster-events
+url: https://sqs.us-east-1.amazonaws.com/943048301123/togglemaster-events
+ARN: arn:aws:sqs:us-east-1:943048301123:togglemaster-events
+
+Dynamo:
+ToggleMasterAnalytics
+arn:aws:dynamodb:us-east-1:943048301123:table/ToggleMasterAnalytics
