@@ -3,6 +3,32 @@ postgres
 EloCps123!
 Porta: 5432
 
+echo -n "postgres" | base64
+echo -n "EloCps123!" | base64
+echo -n "auth-db" | base64
+echo -n "5432" | base64
+echo -n "SUA_MASTER_KEY" | base64
+echo -n "jdbc-ou-url-do-rds" | base64
+cG9zdGdyZXM=
+RWxvQ3BzMTIzIQ==
+YXV0aC1kYg==
+NTQzMg==
+amRiYy1vdS11cmwtZG8tcmRz
+
+YWRtaW4tc2VjcmV0by0xMjM=
+admin-secreto-123
+
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ echo -n 'postgres://postgres:EloCps123!@auth-db.ci85aczwbbez.us-east-1.rds.amazonaws.com:5432/auth_db?sslmode=require' | base64 -w0
+cG9zdGdyZXM6Ly9wb3N0Z3JlczpFbG9DcHMxMjMhQGF1dGgtZGIuY2k4NWFjendiYmV6LnVzLWVhc3QtMS5yZHMuYW1hem9uYXdzLmNvbTo1NDMyL2F1dGhfZGI/c3NsbW9kZT1yZXF1aXJl
+
+
+echo -n 'postgres://postgres:SenhaForte123!@auth-db.cs5ayiqio5aa.us-east-1.rds.amazonaws.com:5432/auth-db?sslmode=require' | base64 -w0
+cG9zdGdyZXM6Ly9wb3N0Z3JlczpTZW5oYUZvcnRlMTIzIUBhdXRoLWRiLmNzNWF5aXFpbzVhYS51cy1lYXN0LTEucmRzLmFtYXpvbmF3cy5jb206NTQzMi9hdXRoLWRiP3NzbG1vZGU9cmVxdWlyZQ==
+
+----------
+
+tm_key_764f75c6a04c04268c03568c918ee39fae63c1f8a2254a4f704d8b31bb8d5338
+
 flag-db
 postgres
 EloCps123!
@@ -25,3 +51,11 @@ ARN: arn:aws:sqs:us-east-1:943048301123:togglemaster-events
 Dynamo:
 ToggleMasterAnalytics
 arn:aws:dynamodb:us-east-1:943048301123:table/ToggleMasterAnalytics
+
+
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ echo -n 'postgres://postgres:SenhaForte123!@flag-db.cs5ayiqio5aa.us-east-1.rds.amazonaws.com:5432/flag-db?sslmode=require' | base64 -w0
+cG9zdGdyZXM6Ly9wb3N0Z3JlczpTZW5oYUZvcnRlMTIzIUBmbGFnLWRiLmNzNWF5aXFpbzVhYS51cy1lYXN0LTEucmRzLmFtYXpvbmF3cy5jb206NTQzMi9mbGFnLWRiP3NzbG1vZGU9cmVxdWlyZQ==
+
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ echo -n 'postgres://postgres:SenhaForte123!@flag-db.cs5ayiqio5aa.us-east-1.rds.amazonaws.com:5432/targeting-db?sslmode=require' | base64 -w0
+cG9zdGdyZXM6Ly9wb3N0Z3JlczpTZW5oYUZvcnRlMTIzIUBmbGFnLWRiLmNzNWF5aXFpbzVhYS51cy1lYXN0LTEucmRzLmFtYXpvbmF3cy5jb206NTQzMi90YXJnZXRpbmctZGI/c3NsbW9kZT1yZXF1aXJl
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ 

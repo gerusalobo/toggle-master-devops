@@ -8,10 +8,10 @@ aws eks describe-nodegroup \
 
 ------------------------------------
   Ao ativar o lab:
-  aws configure --profile lab
+  aws configure --profile lab // prod
 
   E verificar:
-  aws sts get-caller-identity --profile lab
+  aws sts get-caller-identity --profile lab  // prod
 
  configurar o kubectl para aws
 
@@ -19,3 +19,951 @@ aws eks describe-nodegroup \
   --name togglemaster-cluster \
   --region us-east-1 \
   --profile lab
+
+Prod
+----------------------------------
+aws eks update-kubeconfig \
+  --name feature-flags-cluster \
+  --region us-east-1 \
+  --profile prod
+-------------------------------
+
+
+  -----
+  verificação do cluster
+
+aws eks describe-cluster \
+  --name togglemaster-cluster \
+  --region us-east-1 \
+  --profile lab
+
+  # update kubeconfig
+aws eks update-kubeconfig \
+ --name togglemaster-cluster \
+ --region us-east-1 \
+ --profile lab
+
+ # list addons
+aws eks list-addons \
+ --cluster-name togglemaster-cluster \
+ --region us-east-1 \
+ --profile lab
+
+ aws eks create-addon \
+ --cluster-name togglemaster-cluster \
+ --addon-name kube-proxy \
+ --region us-east-1 \
+ --profile lab
+
+Ai na sequencia foi necessario restartar o metrics e reinstalar o nginx
+
+kubectl rollout restart deployment metrics-server -n kube-system
+
+Para ver os pods:
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ kubectl get pods -n kube-system
+NAME                              READY   STATUS    RESTARTS         AGE
+aws-node-78cvp                    2/2     Running   0                4d17h
+aws-node-np7rd                    2/2     Running   0                4d17h
+coredns-dd4659cdd-m9dcl           1/1     Running   0                4d17h
+coredns-dd4659cdd-v89gn           1/1     Running   0                4d17h
+eks-node-monitoring-agent-kswrw   1/1     Running   1099 (16m ago)   4d17h
+eks-node-monitoring-agent-lwc5s   1/1     Running   1099 (16m ago)   4d17h
+eks-pod-identity-agent-6w2rd      1/1     Running   0                4d17h
+eks-pod-identity-agent-xqm29      1/1     Running   0                4d17h
+kube-proxy-mnnvn                  1/1     Running   0                15m
+kube-proxy-q9dfl                  1/1     Running   0                15m
+metrics-server-88df665b7-tlqnz    1/1     Running   0                9m48s
+metrics-server-88df665b7-tqwkw    1/1     Running   0                9m48s
+
+E os nodes
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ kubectl top nodes
+NAME                            CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%   
+ip-172-31-29-70.ec2.internal    55m          2%     1019Mi          30%       
+ip-172-31-82-178.ec2.internal   42m          2%     631Mi           19%    
+
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ kubectl get pods -n ingress-nginx
+NAME                                        READY   STATUS    RESTARTS   AGE
+ingress-nginx-controller-6c7cd85885-7ghtj   1/1     Running   0          5m2s
+
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ kubectl get pods -A
+NAMESPACE       NAME                                        READY   STATUS    RESTARTS         AGE
+external-dns    external-dns-c776895d-8thbr                 1/1     Running   1110 (24m ago)   4d17h
+ingress-nginx   ingress-nginx-controller-6c7cd85885-7ghtj   1/1     Running   0                7m31s
+kube-system     aws-node-78cvp                              2/2     Running   0                4d17h
+kube-system     aws-node-np7rd                              2/2     Running   0                4d17h
+kube-system     coredns-dd4659cdd-m9dcl                     1/1     Running   0                4d17h
+kube-system     coredns-dd4659cdd-v89gn                     1/1     Running   0                4d17h
+kube-system     eks-node-monitoring-agent-kswrw             1/1     Running   1099 (20m ago)   4d17h
+kube-system     eks-node-monitoring-agent-lwc5s             1/1     Running   1099 (20m ago)   4d17h
+kube-system     eks-pod-identity-agent-6w2rd                1/1     Running   0                4d17h
+kube-system     eks-pod-identity-agent-xqm29                1/1     Running   0                4d17h
+kube-system     kube-proxy-mnnvn                            1/1     Running   0                19m
+kube-system     kube-proxy-q9dfl                            1/1     Running   0                19m
+kube-system     metrics-server-88df665b7-tlqnz              1/1     Running   0                14m
+kube-system     metrics-server-88df665b7-tqwkw              1/1     Running   0                14m
+
+
+para verificar se o kubectl está local ou na aws
+kubectl config current-context
+
+Para aplicar em ordem
+
+kubectl apply -f k8s/namespace.yaml
+
+kubectl apply -f k8s/auth-service/
+
+kubectl apply -f k8s/ingress/ingress.yaml
+
+para ver os status
+kubectl get all - auth
+
+para restartar
+kubectl rollout restart deployment auth-service -n auth
+
+foi preciso criar a tabela do auth manualmente.
+para isso usamos um pod temporario de sql:
+
+kubectl run postgres-client \
+  --image=postgres:16 \
+  -n auth \
+  --rm -it \
+  -- bash
+
+psql \
+-h auth-db.ci85aczwbbez.us-east-1.rds.amazonaws.com \
+-U postgres \
+-d postgres \
+-p 5432
+
+CREATE DATABASE "auth_db";
+
+\c auth_db    // para entrar no DATABASE
+
+e rodar o comando do init.sql
+
+CREATE TABLE IF NOT EXISTS api_keys (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    
+    -- key_hash armazena o hash SHA-256 da chave, que tem 64 caracteres hexadecimais
+    key_hash VARCHAR(64) NOT NULL UNIQUE, 
+    
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+kubectl get ingress -n togglemaster
+
+kubectl get all -n togglemaster
+
+
+aws eks describe-nodegroup \
+  --cluster-name togglemaster-cluster \
+  --nodegroup-name togglemaster-nodegroup \
+  --region us-east-1 \
+  --profile lab
+
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws --version
+aws-cli/2.35.11 Python/3.14.5 Linux/6.14.0-37-generic exe/x86_64.linuxmint.22
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws configure list-profiles
+default
+lab
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws configure --profile prod
+
+Tip: You can deliver temporary credentials to the AWS CLI using your AWS Console session by running the command 'aws login'.
+
+AWS Access Key ID [None]: AKIA2KE2GXXPZLH5GZTD
+AWS Secret Access Key [None]: w62AOgQDWR99lRMJ5VKjnGmq3LLFXFNTRUsPYy5C
+Default region name [None]: us-east-1
+Default output format [None]: json
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws sts get-caller-identity --profile prod
+{
+    "UserId": "AIDA2KE2GXXPSUNVIRV3J",
+    "Account": "708993007071",
+    "Arn": "arn:aws:iam::708993007071:user/gerusaloboaws3"
+}
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws eks list-clusters --region us-east-1 --profile prod
+{
+    "clusters": [
+        "feature-flags-cluster"
+    ]
+}
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws ecr describe-repositories --region us-east-1 --profile prod
+{
+    "repositories": [
+        {
+            "repositoryArn": "arn:aws:ecr:us-east-1:708993007071:repository/auth-service",
+            "registryId": "708993007071",
+            "repositoryName": "auth-service",
+            "repositoryUri": "708993007071.dkr.ecr.us-east-1.amazonaws.com/auth-service",
+            "createdAt": "2026-06-30T19:52:26.211000-03:00",
+            "imageTagMutability": "MUTABLE",
+            "imageScanningConfiguration": {
+                "scanOnPush": true
+            },
+            "encryptionConfiguration": {
+                "encryptionType": "AES256"
+            }
+        },
+        {
+            "repositoryArn": "arn:aws:ecr:us-east-1:708993007071:repository/targeting-service",
+            "registryId": "708993007071",
+            "repositoryName": "targeting-service",
+            "repositoryUri": "708993007071.dkr.ecr.us-east-1.amazonaws.com/targeting-service",
+            "createdAt": "2026-06-30T19:52:39.076000-03:00",
+            "imageTagMutability": "MUTABLE",
+            "imageScanningConfiguration": {
+                "scanOnPush": true
+            },
+            "encryptionConfiguration": {
+                "encryptionType": "AES256"
+            }
+        },
+        {
+            "repositoryArn": "arn:aws:ecr:us-east-1:708993007071:repository/evaluation-service",
+            "registryId": "708993007071",
+            "repositoryName": "evaluation-service",
+            "repositoryUri": "708993007071.dkr.ecr.us-east-1.amazonaws.com/evaluation-service",
+            "createdAt": "2026-06-30T19:52:45.960000-03:00",
+            "imageTagMutability": "MUTABLE",
+            "imageScanningConfiguration": {
+                "scanOnPush": true
+            },
+            "encryptionConfiguration": {
+                "encryptionType": "AES256"
+            }
+        },
+        {
+            "repositoryArn": "arn:aws:ecr:us-east-1:708993007071:repository/analytics-service",
+            "registryId": "708993007071",
+            "repositoryName": "analytics-service",
+            "repositoryUri": "708993007071.dkr.ecr.us-east-1.amazonaws.com/analytics-service",
+            "createdAt": "2026-06-30T19:54:37.446000-03:00",
+            "imageTagMutability": "MUTABLE",
+            "imageScanningConfiguration": {
+                "scanOnPush": true
+            },
+            "encryptionConfiguration": {
+                "encryptionType": "AES256"
+            }
+        },
+        {
+            "repositoryArn": "arn:aws:ecr:us-east-1:708993007071:repository/flag-service",
+            "registryId": "708993007071",
+            "repositoryName": "flag-service",
+            "repositoryUri": "708993007071.dkr.ecr.us-east-1.amazonaws.com/flag-service",
+            "createdAt": "2026-06-30T19:52:35.391000-03:00",
+            "imageTagMutability": "MUTABLE",
+            "imageScanningConfiguration": {
+                "scanOnPush": true
+            },
+            "encryptionConfiguration": {
+                "encryptionType": "AES256"
+            }
+        }
+    ]
+}
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws rds describe-db-instances --region us-east-1 --profile prod
+{
+    "DBInstances": [
+        {
+            "DBInstanceIdentifier": "auth-service-db",
+            "DBInstanceClass": "db.t3.micro",
+            "Engine": "postgres",
+            "DBInstanceStatus": "available",
+            "MasterUsername": "postgres",
+            "Endpoint": {
+                "Address": "auth-service-db.cs5ayiqio5aa.us-east-1.rds.amazonaws.com",
+                "Port": 5432,
+                "HostedZoneId": "Z2R2ITUGPM61AM"
+            },
+            "AllocatedStorage": 20,
+            "InstanceCreateTime": "2026-06-30T23:16:08.701000+00:00",
+            "PreferredBackupWindow": "09:25-09:55",
+            "BackupRetentionPeriod": 1,
+            "DBSecurityGroups": [],
+            "VpcSecurityGroups": [
+                {
+                    "VpcSecurityGroupId": "sg-0ef935d9a5ecb9e79",
+                    "Status": "active"
+                }
+            ],
+            "DBParameterGroups": [
+                {
+                    "DBParameterGroupName": "default.postgres18",
+                    "ParameterApplyStatus": "in-sync"
+                }
+            ],
+            "AvailabilityZone": "us-east-1d",
+            "DBSubnetGroup": {
+                "DBSubnetGroupName": "default",
+                "DBSubnetGroupDescription": "default",
+                "VpcId": "vpc-031834d46b06ebdba",
+                "SubnetGroupStatus": "Complete",
+                "Subnets": [
+                    {
+                        "SubnetIdentifier": "subnet-00a5f92d312dc23a6",
+                        "SubnetAvailabilityZone": {
+                            "Name": "us-east-1f"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    },
+                    {
+                        "SubnetIdentifier": "subnet-077bc503990aac1e8",
+                        "SubnetAvailabilityZone": {
+                            "Name": "us-east-1e"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    },
+                    {
+                        "SubnetIdentifier": "subnet-06d4066a0bdfacfd2",
+                        "SubnetAvailabilityZone": {
+                            "Name": "us-east-1a"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    },
+                    {
+                        "SubnetIdentifier": "subnet-09a3c3c273ab83020",
+                        "SubnetAvailabilityZone": {
+                            "Name": "us-east-1d"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    },
+                    {
+                        "SubnetIdentifier": "subnet-0f13b0236e8af2cf5",
+                        "SubnetAvailabilityZone": {
+                            "Name": "us-east-1b"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    },
+                    {
+                        "SubnetIdentifier": "subnet-0a68aede32afad1ea",
+                        "SubnetAvailabilityZone": {
+                            "Name": "us-east-1c"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    }
+                ]
+            },
+            "PreferredMaintenanceWindow": "tue:04:52-tue:05:22",
+            "UpgradeRolloutOrder": "second",
+            "PendingModifiedValues": {},
+            "LatestRestorableTime": "2026-07-10T14:40:55+00:00",
+            "MultiAZ": false,
+            "EngineVersion": "18.3",
+            "AutoMinorVersionUpgrade": true,
+            "ReadReplicaDBInstanceIdentifiers": [],
+            "LicenseModel": "postgresql-license",
+            "StorageThroughput": 0,
+            "OptionGroupMemberships": [
+                {
+                    "OptionGroupName": "default:postgres-18",
+                    "Status": "in-sync"
+                }
+            ],
+            "PubliclyAccessible": true,
+            "StorageType": "gp2",
+            "DbInstancePort": 0,
+            "StorageEncrypted": false,
+            "DbiResourceId": "db-E55ALYKS6D5BGLCTKRJJI6V2VM",
+            "CACertificateIdentifier": "rds-ca-rsa2048-g1",
+            "DomainMemberships": [],
+            "CopyTagsToSnapshot": false,
+            "MonitoringInterval": 0,
+            "DBInstanceArn": "arn:aws:rds:us-east-1:708993007071:db:auth-service-db",
+            "IAMDatabaseAuthenticationEnabled": false,
+            "DatabaseInsightsMode": "standard",
+            "PerformanceInsightsEnabled": false,
+            "DeletionProtection": false,
+            "AssociatedRoles": [],
+            "TagList": [],
+            "CustomerOwnedIpEnabled": false,
+            "NetworkType": "IPV4",
+            "ActivityStreamStatus": "stopped",
+            "BackupTarget": "region",
+            "CertificateDetails": {
+                "CAIdentifier": "rds-ca-rsa2048-g1",
+                "ValidTill": "2027-06-30T23:14:49+00:00"
+            },
+            "DedicatedLogVolume": false,
+            "IsStorageConfigUpgradeAvailable": false,
+            "EngineLifecycleSupport": "open-source-rds-extended-support"
+        },
+        {
+            "DBInstanceIdentifier": "flag-service-db",
+            "DBInstanceClass": "db.t3.micro",
+            "Engine": "postgres",
+            "DBInstanceStatus": "available",
+            "MasterUsername": "postgres",
+            "Endpoint": {
+                "Address": "flag-service-db.cs5ayiqio5aa.us-east-1.rds.amazonaws.com",
+                "Port": 5432,
+                "HostedZoneId": "Z2R2ITUGPM61AM"
+            },
+            "AllocatedStorage": 20,
+            "InstanceCreateTime": "2026-06-30T23:15:53.127000+00:00",
+            "PreferredBackupWindow": "03:07-03:37",
+            "BackupRetentionPeriod": 1,
+            "DBSecurityGroups": [],
+            "VpcSecurityGroups": [
+                {
+                    "VpcSecurityGroupId": "sg-0ef935d9a5ecb9e79",
+                    "Status": "active"
+                }
+            ],
+            "DBParameterGroups": [
+                {
+                    "DBParameterGroupName": "default.postgres18",
+                    "ParameterApplyStatus": "in-sync"
+                }
+            ],
+            "AvailabilityZone": "us-east-1f",
+            "DBSubnetGroup": {
+                "DBSubnetGroupName": "default",
+                "DBSubnetGroupDescription": "default",
+                "VpcId": "vpc-031834d46b06ebdba",
+                "SubnetGroupStatus": "Complete",
+                "Subnets": [
+                    {
+                        "SubnetIdentifier": "subnet-00a5f92d312dc23a6",
+                        "SubnetAvailabilityZone": {
+                            "Name": "us-east-1f"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    },
+                    {
+                        "SubnetIdentifier": "subnet-077bc503990aac1e8",
+                        "SubnetAvailabilityZone": {
+                            "Name": "us-east-1e"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    },
+                    {
+                        "SubnetIdentifier": "subnet-06d4066a0bdfacfd2",
+                        "SubnetAvailabilityZone": {
+                            "Name": "us-east-1a"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    },
+                    {
+                        "SubnetIdentifier": "subnet-09a3c3c273ab83020",
+                        "SubnetAvailabilityZone": {
+                            "Name": "us-east-1d"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    },
+                    {
+                        "SubnetIdentifier": "subnet-0f13b0236e8af2cf5",
+                        "SubnetAvailabilityZone": {
+                            "Name": "us-east-1b"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    },
+                    {
+                        "SubnetIdentifier": "subnet-0a68aede32afad1ea",
+                        "SubnetAvailabilityZone": {
+                            "Name": "us-east-1c"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    }
+                ]
+            },
+            "PreferredMaintenanceWindow": "sun:06:50-sun:07:20",
+            "UpgradeRolloutOrder": "second",
+            "PendingModifiedValues": {},
+            "LatestRestorableTime": "2026-07-10T14:40:50+00:00",
+            "MultiAZ": false,
+            "EngineVersion": "18.3",
+            "AutoMinorVersionUpgrade": true,
+            "ReadReplicaDBInstanceIdentifiers": [],
+            "LicenseModel": "postgresql-license",
+            "StorageThroughput": 0,
+            "OptionGroupMemberships": [
+                {
+                    "OptionGroupName": "default:postgres-18",
+                    "Status": "in-sync"
+                }
+            ],
+            "PubliclyAccessible": true,
+            "StorageType": "gp2",
+            "DbInstancePort": 0,
+            "StorageEncrypted": false,
+            "DbiResourceId": "db-ZUEIPNLVMDW5JV47T6EBFO3BCQ",
+            "CACertificateIdentifier": "rds-ca-rsa2048-g1",
+            "DomainMemberships": [],
+            "CopyTagsToSnapshot": false,
+            "MonitoringInterval": 0,
+            "DBInstanceArn": "arn:aws:rds:us-east-1:708993007071:db:flag-service-db",
+            "IAMDatabaseAuthenticationEnabled": false,
+            "DatabaseInsightsMode": "standard",
+            "PerformanceInsightsEnabled": false,
+            "DeletionProtection": false,
+            "AssociatedRoles": [],
+            "TagList": [],
+            "CustomerOwnedIpEnabled": false,
+            "NetworkType": "IPV4",
+            "ActivityStreamStatus": "stopped",
+            "BackupTarget": "region",
+            "CertificateDetails": {
+                "CAIdentifier": "rds-ca-rsa2048-g1",
+                "ValidTill": "2027-06-30T23:14:41+00:00"
+            },
+            "DedicatedLogVolume": false,
+            "IsStorageConfigUpgradeAvailable": false,
+            "EngineLifecycleSupport": "open-source-rds-extended-support"
+        }
+    ]
+}
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws eks update-kubeconfig \
+  --name feature-flags-cluster \
+  --region us-east-1 \
+  --profile prod
+Added new context arn:aws:eks:us-east-1:708993007071:cluster/feature-flags-cluster to /home/gerusa/.kube/config
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl get nodes
+E0710 11:48:48.113606 1674908 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: the server has asked for the client to provide credentials"
+E0710 11:48:49.315551 1674908 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: the server has asked for the client to provide credentials"
+E0710 11:48:50.361378 1674908 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: the server has asked for the client to provide credentials"
+E0710 11:48:51.689330 1674908 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: the server has asked for the client to provide credentials"
+E0710 11:48:52.905377 1674908 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: the server has asked for the client to provide credentials"
+error: You must be logged in to the server (the server has asked for the client to provide credentials)
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ ^C
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws sts get-caller-identity --profile prod
+{
+    "UserId": "AIDA2KE2GXXPSUNVIRV3J",
+    "Account": "708993007071",
+    "Arn": "arn:aws:iam::708993007071:user/gerusaloboaws3"
+}
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws eks update-kubeconfig \
+  --region us-east-1 \
+  --name feature-flags-cluster \
+  --profile prod
+Updated context arn:aws:eks:us-east-1:708993007071:cluster/feature-flags-cluster in /home/gerusa/.kube/config
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl get nodes
+E0710 11:50:03.011709 1675255 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: the server has asked for the client to provide credentials"
+E0710 11:50:04.018473 1675255 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: the server has asked for the client to provide credentials"
+E0710 11:50:05.151995 1675255 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: the server has asked for the client to provide credentials"
+^C
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl config current-context
+arn:aws:eks:us-east-1:708993007071:cluster/feature-flags-cluster
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl config view --minify
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://022B1C1C7BB91E3621602AA3A7D57D0D.gr7.us-east-1.eks.amazonaws.com
+  name: arn:aws:eks:us-east-1:708993007071:cluster/feature-flags-cluster
+contexts:
+- context:
+    cluster: arn:aws:eks:us-east-1:708993007071:cluster/feature-flags-cluster
+    user: arn:aws:eks:us-east-1:708993007071:cluster/feature-flags-cluster
+  name: arn:aws:eks:us-east-1:708993007071:cluster/feature-flags-cluster
+current-context: arn:aws:eks:us-east-1:708993007071:cluster/feature-flags-cluster
+kind: Config
+preferences: {}
+users:
+- name: arn:aws:eks:us-east-1:708993007071:cluster/feature-flags-cluster
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      args:
+      - --region
+      - us-east-1
+      - eks
+      - get-token
+      - --cluster-name
+      - feature-flags-cluster
+      - --output
+      - json
+      command: aws
+      env:
+      - name: AWS_PROFILE
+        value: prod
+      interactiveMode: IfAvailable
+      provideClusterInfo: false
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws sts get-caller-identity --profile prod
+{
+    "UserId": "AIDA2KE2GXXPSUNVIRV3J",
+    "Account": "708993007071",
+    "Arn": "arn:aws:iam::708993007071:user/gerusaloboaws3"
+}
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws eks list-access-entries \
+  --cluster-name feature-flags-cluster \
+  --region us-east-1 \
+  --profile prod
+{
+    "accessEntries": [
+        "arn:aws:iam::708993007071:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS",
+        "arn:aws:iam::708993007071:role/eksctl-feature-flags-cluster-nodeg-NodeInstanceRole-KJQWkv0woNDd",
+        "arn:aws:iam::708993007071:user/Pedro",
+        "arn:aws:iam::708993007071:user/meloricke"
+    ]
+}
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws eks create-access-entry \
+  --cluster-name feature-flags-cluster \
+  --principal-arn arn:aws:iam::708993007071:user/gerusaloboaws3 \
+  --region us-east-1 \
+  --profile prod
+{
+    "accessEntry": {
+        "clusterName": "feature-flags-cluster",
+        "principalArn": "arn:aws:iam::708993007071:user/gerusaloboaws3",
+        "kubernetesGroups": [],
+        "accessEntryArn": "arn:aws:eks:us-east-1:708993007071:access-entry/feature-flags-cluster/user/708993007071/gerusaloboaws3/c8cfa642-2cfa-63c9-3391-fd6dd022a866",
+        "createdAt": "2026-07-10T11:52:50.092000-03:00",
+        "modifiedAt": "2026-07-10T11:52:50.092000-03:00",
+        "tags": {},
+        "username": "arn:aws:iam::708993007071:user/gerusaloboaws3",
+        "type": "STANDARD"
+    }
+}
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws eks list-access-entries   --cluster-name feature-flags-cluster 
+  --region us-east-1   --profile prod
+{
+    "accessEntries": [
+        "arn:aws:iam::708993007071:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS",
+        "arn:aws:iam::708993007071:role/eksctl-feature-flags-cluster-nodeg-NodeInstanceRole-KJQWkv0woNDd",
+        "arn:aws:iam::708993007071:user/Pedro",
+        "arn:aws:iam::708993007071:user/gerusaloboaws3",
+        "arn:aws:iam::708993007071:user/meloricke"
+    ]
+}
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl get nodes
+Error from server (Forbidden): nodes is forbidden: User "arn:aws:iam::708993007071:user/gerusaloboaws3" cannot list resource "nodes" in API group "" at the cluster scope
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws eks list-associated-access-policies \
+  --cluster-name feature-flags-cluster \
+  --principal-arn arn:aws:iam::708993007071:user/gerusaloboaws3 \
+  --region us-east-1 \
+  --profile prod
+{
+    "associatedAccessPolicies": [],
+    "clusterName": "feature-flags-cluster",
+    "principalArn": "arn:aws:iam::708993007071:user/gerusaloboaws3"
+}
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ aws eks associate-access-policy \
+  --cluster-name feature-flags-cluster \
+  --principal-arn arn:aws:iam::708993007071:user/gerusaloboaws3 \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+  --access-scope type=cluster \
+  --region us-east-1 \
+  --profile prod
+{
+    "clusterName": "feature-flags-cluster",
+    "principalArn": "arn:aws:iam::708993007071:user/gerusaloboaws3",
+    "associatedAccessPolicy": {
+        "policyArn": "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy",
+        "accessScope": {
+            "type": "cluster",
+            "namespaces": []
+        },
+        "associatedAt": "2026-07-10T11:54:13.935000-03:00",
+        "modifiedAt": "2026-07-10T11:54:13.935000-03:00"
+    }
+}
+
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl get nodes
+NAME                            STATUS   ROLES    AGE   VERSION
+ip-192-168-10-14.ec2.internal   Ready    <none>   9d    v1.36.2-eks-93b80c6
+ip-192-168-34-99.ec2.internal   Ready    <none>   9d    v1.36.2-eks-93b80c6
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl get ns
+NAME              STATUS   AGE
+default           Active   9d
+kube-node-lease   Active   9d
+kube-public       Active   9d
+kube-system       Active   9d
+toggle-prod       Active   2d13h
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl get all -n toggle-prod
+No resources found in toggle-prod namespace.
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl get ingress -A
+No resources found
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl get pods -A
+NAMESPACE     NAME                              READY   STATUS    RESTARTS   AGE
+kube-system   aws-node-f2tf7                    2/2     Running   0          9d
+kube-system   aws-node-fthtg                    2/2     Running   0          9d
+kube-system   coredns-6978bdb969-fzjl4          1/1     Running   0          9d
+kube-system   coredns-6978bdb969-wxrsf          1/1     Running   0          9d
+kube-system   kube-proxy-kx2jc                  1/1     Running   0          9d
+kube-system   kube-proxy-q7znr                  1/1     Running   0          9d
+kube-system   metrics-server-69cc5f87cc-8d4n4   1/1     Running   0          9d
+kube-system   metrics-server-69cc5f87cc-q9j97   1/1     Running   0          9d
+
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ helm install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --create-namespace \
+  --set controller.service.type=LoadBalancer \
+  --set controller.publishService.enabled=true
+Error: INSTALLATION FAILED: failed pre-install: 1 error occurred:
+        * timed out waiting for the condition
+
+
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ helm list -A
+NAME            NAMESPACE       REVISION        UPDATED                                 STATUS  CHART                   APP VERSION
+ingress-nginx   ingress-nginx   1               2026-07-10 12:00:09.26683652 -0300 -03  failed  ingress-nginx-4.15.1    1.15.1     
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ helm uninstall ingress-nginx -n ingress-nginx
+release "ingress-nginx" uninstalled
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ helm list -A
+NAME    NAMESPACE       REVISION        UPDATED STATUS  CHART   APP VERSION
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl get all -n ingress-nginx
+NAME                                       READY   STATUS              RESTARTS   AGE
+pod/ingress-nginx-admission-create-2kh26   0/1     ContainerCreating   0          19m
+
+NAME                                       STATUS    COMPLETIONS   DURATION   AGE
+job.batch/ingress-nginx-admission-create   Running   0/1           19m        19m
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl delete job ingress-nginx-admission-create -n ingress-nginx
+job.batch "ingress-nginx-admission-create" deleted
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl get all -n ingress-nginx
+No resources found in ingress-nginx namespace.
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl get ns
+NAME              STATUS   AGE
+default           Active   9d
+ingress-nginx     Active   21m
+kube-node-lease   Active   9d
+kube-public       Active   9d
+kube-system       Active   9d
+toggle-prod       Active   2d14h
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl get ns
+NAME              STATUS   AGE
+default           Active   9d
+ingress-nginx     Active   22m
+kube-node-lease   Active   9d
+kube-public       Active   9d
+kube-system       Active   9d
+toggle-prod       Active   2d14h
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ helm install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --set controller.service.type=LoadBalancer \
+  --set controller.publishService.enabled=true \
+  --set controller.admissionWebhooks.enabled=false
+NAME: ingress-nginx
+LAST DEPLOYED: Fri Jul 10 12:23:03 2026
+NAMESPACE: ingress-nginx
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+The ingress-nginx controller has been installed.
+It may take a few minutes for the load balancer IP to be available.
+You can watch the status by running 'kubectl get service --namespace ingress-nginx ingress-nginx-controller --output wide --watch'
+
+An example Ingress that makes use of the controller:
+  apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: example
+    namespace: foo
+  spec:
+    ingressClassName: nginx
+    rules:
+      - host: www.example.com
+        http:
+          paths:
+            - pathType: Prefix
+              backend:
+                service:
+                  name: exampleService
+                  port:
+                    number: 80
+              path: /
+    # This section is only required if TLS is to be enabled for the Ingress
+    tls:
+      - hosts:
+        - www.example.com
+        secretName: example-tls
+
+If TLS is enabled for the Ingress, a Secret containing the certificate and key must also be provided:
+
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: example-tls
+    namespace: foo
+  data:
+    tls.crt: <base64 encoded cert>
+    tls.key: <base64 encoded key>
+  type: kubernetes.io/tls
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ helm list -A
+NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                   APP VERSION
+ingress-nginx   ingress-nginx   1               2026-07-10 12:23:03.463642783 -0300 -03 deployed        ingress-nginx-4.15.1    1.15.1     
+
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl get pods -n ingress-nginx
+NAME                                        READY   STATUS    RESTARTS   AGE
+ingress-nginx-controller-69d8456fdd-ptphb   1/1     Running   0          47s
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices-GL$ kubectl get svc -n ingress-nginx
+NAME                       TYPE           CLUSTER-IP      EXTERNAL-IP                                                              PORT(S)                      AGE
+ingress-nginx-controller   LoadBalancer   10.100.133.68   acc28ae7dcc21487e87cdd1a2bbeb3d2-106617744.us-east-1.elb.amazonaws.com   80:30991/TCP,443:31418/TCP   59s
+
+
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ aws rds describe-db-instances \
+  --region us-east-1 \
+  --profile prod \
+  --query "DBInstances[*].[DBInstanceIdentifier,DBInstanceStatus]"
+[
+    [
+        "auth-service-db",
+        "deleting"
+    ],
+    [
+        "flag-service-db",
+        "deleting"
+    ]
+]
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ watch -n 10 'aws rds describe-db-instances \
+  --region us-east-1 \
+  --profile prod \
+  --query "DBInstances[*].[DBInstanceIdentifier,DBInstanceStatus]"'
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ aws eks describe-cluster \
+  --name feature-flags-cluster \
+  --region us-east-1 \
+  --profile prod \
+  --query "cluster.resourcesVpcConfig.subnetIds"
+[
+    "subnet-05b043efc02142437",
+    "subnet-0a4b8a833c180a8b3",
+    "subnet-0b6d71475b7a04865",
+    "subnet-09744adccb3f6691c"
+]
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ aws eks describe-cluster \
+  --name feature-flags-cluster \
+  --region us-east-1 \
+  --profile prod \
+  --query "cluster.resourcesVpcConfig.vpcId"
+"vpc-0fc2987e3d0de4c7c"
+
+criação do banco via cli
+
+aws rds create-db-instance \
+  --db-instance-identifier flag-db \
+  --db-instance-class db.t3.micro \
+  --engine postgres \
+  --engine-version 16 \
+  --allocated-storage 20 \
+  --storage-type gp3 \
+  --master-username postgres \
+  --master-user-password 'SenhaForte123!' \
+  --db-subnet-group-name toggle-prod-db-subnet-group \
+  --vpc-security-group-ids sg-028b6a777708d9e14 \
+  --no-publicly-accessible \
+  --backup-retention-period 0 \
+  --region us-east-1 \
+  --profile prod
+
+  kubectl run postgres-client \
+  --image=postgres:18 \
+  -n toggle-prod \
+  --rm -it \
+  -- bash
+
+  psql \
+-h auth-db.cs5ayiqio5aa.us-east-1.rds.amazonaws.com \
+-U postgres \
+-d postgres \
+-p 5432
+
+ psql \
+-h flag-db.cs5ayiqio5aa.us-east-1.rds.amazonaws.com \
+-U postgres \
+-d postgres \
+-p 5432
+
+echo -n 'postgres://postgres:SenhaForte123!@auth-db.cs5ayiqio5aa.us-east-1.rds.amazonaws.com:5432/auth-db?sslmode=require' | base64 -w0
+echo -n 'postgres://postgres:SenhaForte123!@flag-db.cs5ayiqio5aa.us-east-1.rds.amazonaws.com:5432/flag-db?sslmode=require' | base64 -w0
+echo -n 'postgres://postgres:SenhaForte123!@flag-db.cs5ayiqio5aa.us-east-1.rds.amazonaws.com:5432/targeting-db?sslmode=require' | base64 -w0
+
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ aws elasticache describe-cache-clusters \
+  --cache-cluster-id evaluation-service-redis \
+  --region us-east-1 \
+  --profile prod \
+  --query "CacheClusters[0].[CacheClusterStatus,CacheNodes[0].Endpoint.Address]"
+[
+    "available",
+    null
+]
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ aws ecr describe-repositories \
+  --region us-east-1 \
+  --profile prod \
+  --query "repositories[*].repositoryUri"
+[
+    "708993007071.dkr.ecr.us-east-1.amazonaws.com/auth-service",
+    "708993007071.dkr.ecr.us-east-1.amazonaws.com/targeting-service",
+    "708993007071.dkr.ecr.us-east-1.amazonaws.com/evaluation-service",
+    "708993007071.dkr.ecr.us-east-1.amazonaws.com/analytics-service",
+    "708993007071.dkr.ecr.us-east-1.amazonaws.com/flag-service"
+]
+
+
+kubectl apply -f k8s/namespace.yaml
+
+kubectl apply -f k8s/auth-service/configmap.yaml
+kubectl apply -f k8s/auth-service/secret.yaml
+kubectl apply -f k8s/auth-service/service.yaml
+kubectl apply -f k8s/auth-service/deployment.yaml
+
+kubectl apply -f k8s/flag-service/configmap.yaml
+kubectl apply -f k8s/flag-service/secret.yaml
+kubectl apply -f k8s/flag-service/service.yaml
+kubectl apply -f k8s/flag-service/flag-deployment.yaml
+
+kubectl apply -f k8s/targeting-service/configmap.yaml
+kubectl apply -f k8s/targeting-service/secret.yaml
+kubectl apply -f k8s/targeting-service/service.yaml
+kubectl apply -f k8s/targeting-service/deployment.yaml
+
+kubectl apply -f k8s/evaluation-service/configmap.yaml
+kubectl apply -f k8s/evaluation-service/secret.yaml
+kubectl apply -f k8s/evaluation-service/service.yaml
+kubectl apply -f k8s/evaluation-service/deployment.yaml
+kubectl apply -f k8s/evaluation-service/hpa.yaml
+
+kubectl apply -f k8s/analytics-service/configmap.yaml
+kubectl apply -f k8s/analytics-service/secret.yaml
+kubectl apply -f k8s/analytics-service/service.yaml
+kubectl apply -f k8s/analytics-service/deployment.yaml
+kubectl apply -f k8s/analytics-service/keda-auth.yaml
+kubectl apply -f k8s/analytics-service/scaledobject.yaml
+
+aws eks create-access-entry \
+  --cluster-name feature-flags-cluster \
+  --principal-arn arn:aws:iam::708993007071:user/pedro \
+  --region us-east-1 \
+  --profile prod
+
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ kubectl logs deployment/evaluation-service -n toggle-prod
+2026/07/11 16:39:17 Conectado ao Redis com sucesso!
+2026/07/11 16:39:17 Cliente SQS inicializado com sucesso.
+2026/07/11 16:39:17 Serviço de Avaliação (Go) rodando na porta 8004
+2026/07/11 16:46:41 Cache MISS para flag 'enable-new-dashboard-1783788394'
+2026/07/11 16:46:41 Evento de avaliação enviado para SQS (Flag: enable-new-dashboard-1783788394)
+2026/07/11 16:46:42 Cache HIT para flag 'enable-new-dashboard-1783788394'
+2026/07/11 16:46:42 Evento de avaliação enviado para SQS (Flag: enable-new-dashboard-1783788394)
+2026/07/11 16:46:42 Cache MISS para flag 'enable-new-dashboard-1780855960'
+2026/07/11 16:46:42 Evento de avaliação enviado para SQS (Flag: enable-new-dashboard-1780855960)
+2026/07/11 16:46:42 Cache MISS para flag 'enable-new-dashboard-1780855960'
+
+
+gerusa@Orion:~/Documentos/GitHub/toggle-master-microservices$ kubectl get pods -A -o custom-columns=NODE:.spec.nodeName --no-headers | sort | uniq -c
+      4 ip-192-168-1-180.ec2.internal
+      4 ip-192-168-17-75.ec2.internal
+      3 ip-192-168-21-40.ec2.internal
+      3 ip-192-168-37-174.ec2.internal
+      4 ip-192-168-40-146.ec2.internal
+      4 ip-192-168-42-88.ec2.internal
+      4 ip-192-168-56-34.ec2.internal
+      4 ip-192-168-8-71.ec2.internal
+      2 <none>
+
+watch kubectl get pods -n toggle-prod -o wide
+
+watch kubectl get hpa -n toggle-prod
+
+watch kubectl get scaledobjects -n toggle-prod
