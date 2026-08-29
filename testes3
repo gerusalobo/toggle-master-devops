@@ -1,0 +1,31 @@
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ aws eks describe-cluster \
+  --name togglemaster-cluster \
+  --region us-east-1 \
+  --profile lab \
+  --query 'cluster.status' \
+  --output text
+ACTIVE
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ aws eks describe-nodegroup \
+  --cluster-name togglemaster-cluster \
+  --nodegroup-name togglemaster-nodegroup \
+  --region us-east-1 \
+  --profile lab \
+  --query 'nodegroup.status' \
+  --output text
+ACTIVE
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ aws eks update-kubeconfig \
+  --name togglemaster-cluster \
+  --region us-east-1 \
+  --profile lab
+Added new context arn:aws:eks:us-east-1:784380251158:cluster/togglemaster-cluster to /home/gerusa/.kube/config
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ kubectl get nodes
+NAME                          STATUS   ROLES    AGE     VERSION
+ip-10-0-11-158.ec2.internal   Ready    <none>   2m55s   v1.36.3-eks-cb19647
+ip-10-0-12-172.ec2.internal   Ready    <none>   2m56s   v1.36.3-eks-cb19647
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ 
+
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ aws ecr describe-repositories \
+  --profile lab \
+  --region us-east-1 \
+  --query 'repositories[].repositoryName' \
+  --output table
