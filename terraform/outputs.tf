@@ -37,3 +37,23 @@ output "evaluation_repository_url" {
 output "analytics_repository_url" {
   value = module.ecr.analytics_repository_url
 }
+
+output "auth_rds_endpoint" {
+  description = "Endpoint do RDS do Auth"
+  value       = module.rds_auth.endpoint
+}
+
+output "auth_rds_port" {
+  description = "Porta do RDS do Auth"
+  value       = module.rds_auth.port
+}
+
+output "auth_rds_database" {
+  description = "Database do Auth"
+  value       = module.rds_auth.database_name
+}
+
+output "auth_rds_security_group_id" {
+  description = "Security Group do RDS do Auth"
+  value       = module.rds_auth.security_group_id
+}

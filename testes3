@@ -29,3 +29,88 @@ gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ aws ecr desc
   --region us-east-1 \
   --query 'repositories[].repositoryName' \
   --output table
+
+  gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ kubectl run postgres-test \
+  --image=postgres:16 \
+  --restart=Never \
+  -- sleep 3600
+Unable to connect to the server: dial tcp: lookup 7BA64E1D4F9790EE1D9DF56516B7D48C.gr7.us-east-1.eks.amazonaws.com on 127.0.0.53:53: no such host
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ aws eks describe-cluster \
+  --name togglemaster-cluster \
+  --region us-east-1 \
+  --profile lab \
+  --query 'cluster.status'
+"ACTIVE"
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ aws eks describe-cluster \
+  --name togglemaster-cluster \
+  --region us-east-1 \
+  --profile lab \
+  --query 'cluster.endpoint'
+"https://788F885456FAD2474EF21832FBD1D8AD.gr7.us-east-1.eks.amazonaws.com"
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ aws eks update-kubeconfig \
+  --name togglemaster-cluster \
+  --region us-east-1 \
+  --profile lab
+Updated context arn:aws:eks:us-east-1:784380251158:cluster/togglemaster-cluster in /home/gerusa/.kube/config
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ kubectl get nodes
+NAME                          STATUS   ROLES    AGE   VERSION
+ip-10-0-11-28.ec2.internal    Ready    <none>   26m   v1.36.3-eks-cb19647
+ip-10-0-12-238.ec2.internal   Ready    <none>   26m   v1.36.3-eks-cb19647
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ kubectl run postgres-test \
+  --image=postgres:16 \
+  --restart=Never \
+  -- sleep 3600
+pod/postgres-test created
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ kubectl get pod postgres-test
+NAME            READY   STATUS    RESTARTS   AGE
+postgres-test   1/1     Running   0          25s
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ kubectl exec -it postgres-test -- bash
+root@postgres-test:/# getent hosts togglemaster-auth.c3qk0hy22u5d.us-east-1.rds.amazonaws.com
+10.0.11.55      togglemaster-auth.c3qk0hy22u5d.us-east-1.rds.amazonaws.com
+root@postgres-test:/# pg_isready \
+  -h togglemaster-auth.c3qk0hy22u5d.us-east-1.rds.amazonaws.com \
+  -p 5432
+togglemaster-auth.c3qk0hy22u5d.us-east-1.rds.amazonaws.com:5432 - accepting connections
+root@postgres-test:/# psql \
+  -h togglemaster-auth.c3qk0hy22u5d.us-east-1.rds.amazonaws.com \
+  -p 5432 \
+  -U togglemaster \
+  -d auth_db
+Password for user togglemaster: 
+psql (16.15 (Debian 16.15-1.pgdg13+2), server 16.13)
+SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, compression: off)
+Type "help" for help.
+
+auth_db=> kubectl delete pod postgres-test
+auth_db-> show tables
+auth_db-> ;
+ERROR:  syntax error at or near "kubectl"
+LINE 1: kubectl delete pod postgres-test
+        ^
+auth_db=> kubectl delete pod postgres-test
+show tables
+;
+ERROR:  syntax error at or near "kubectl"
+LINE 1: kubectl delete pod postgres-test
+        ^
+auth_db=> SELECT current_database();
+ current_database 
+------------------
+ auth_db
+(1 row)
+
+auth_db=> exit
+root@postgres-test:/# exit
+exit
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ kubectl get nodes
+NAME                          STATUS   ROLES    AGE   VERSION
+ip-10-0-11-28.ec2.internal    Ready    <none>   30m   v1.36.3-eks-cb19647
+ip-10-0-12-238.ec2.internal   Ready    <none>   31m   v1.36.3-eks-cb19647
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ kubectl get pod postgres-test
+NAME            READY   STATUS    RESTARTS   AGE
+postgres-test   1/1     Running   0          5m19s
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ kubectl delete pod postgres-test
+pod "postgres-test" deleted from default namespace
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ kubectl get pod postgres-test
+Error from server (NotFound): pods "postgres-test" not found
+gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ 

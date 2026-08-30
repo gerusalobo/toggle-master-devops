@@ -27,7 +27,7 @@ module "rds_auth" {
   identifier = "togglemaster-auth"
 
   database_name = "auth_db"
-  username      = "admin"
+  username      = "togglemaster"
   password      = var.auth_db_password
 
   vpc_id             = module.vpc.vpc_id

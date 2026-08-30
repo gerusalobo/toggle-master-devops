@@ -7,6 +7,8 @@ aws configure --profile lab
 muda pára o lab
 aws sts get-caller-identity --profile lab
 
+export AWS_PROFILE=lab
+
 ativa o terraform
 terraform init
 
