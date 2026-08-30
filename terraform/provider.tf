@@ -4,6 +4,11 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.38"
+    }
   }
 
   required_version = ">= 1.16.0"
@@ -18,4 +23,8 @@ terraform {
 provider "aws" {
   region  = "us-east-1"
   profile = "lab"
+}
+
+provider "kubernetes" {
+  config_path = "~/.kube/config"
 }

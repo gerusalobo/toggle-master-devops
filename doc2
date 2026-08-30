@@ -12,6 +12,19 @@ export AWS_PROFILE=lab
 ativa o terraform
 terraform init
 
+terraform fmt
+terraform validate
+terraform plan
+
+terraform apply
+
+terraform plan -destroy
+terraform destroy
+
+terraform show
+terraform state list
+
+
 criando o bucket de terraform
 gerusa@Orion:~/Documentos/GitHub/toggle-master-devops-GL/terraform$ aws s3api create-bucket \
   --bucket togglemaster-terraform-state-943048301123 \

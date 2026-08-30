@@ -27,7 +27,7 @@ spec:
 
         - name: auth-service
 
-          image: 708993007071.dkr.ecr.us-east-1.amazonaws.com/auth-service:latest
+          image: 784380251158.dkr.ecr.us-east-1.amazonaws.com/togglemaster/auth-service:latest
 
           imagePullPolicy: Always
 

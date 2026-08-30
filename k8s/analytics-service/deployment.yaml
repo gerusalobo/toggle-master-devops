@@ -27,7 +27,7 @@ spec:
 
         - name: analytics-service
 
-          image: 708993007071.dkr.ecr.us-east-1.amazonaws.com/analytics-service:latest
+          image: 784380251158.dkr.ecr.us-east-1.amazonaws.com/togglemaster/analytics-service:latest
 
           imagePullPolicy: Always
 

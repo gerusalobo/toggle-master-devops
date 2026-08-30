@@ -15,8 +15,17 @@ variable "lab_role_arn" {
   type        = string
 }
 
+variable "auth_db_username" {
+  type    = string
+  default = "togglemaster"
+}
+
 variable "auth_db_password" {
-  description = "Senha do banco PostgreSQL do Auth"
-  type        = string
-  sensitive   = true
+  type      = string
+  sensitive = true
+}
+
+variable "auth_master_key" {
+  type      = string
+  sensitive = true
 }
