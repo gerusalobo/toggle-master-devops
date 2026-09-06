@@ -4,11 +4,11 @@
 # CONFIGURAÇÃO
 ########################################
 
-BASE_URL_AUTH=${BASE_URL_AUTH:-http://ac297df31845e4e4998e7d5215a2ed16-367524434.us-east-1.elb.amazonaws.com/auth}
-BASE_URL_FLAG=${BASE_URL_FLAG:-http://ac297df31845e4e4998e7d5215a2ed16-367524434.us-east-1.elb.amazonaws.com/flags}
-BASE_URL_TARGETING=${BASE_URL_TARGETING:-http://ac297df31845e4e4998e7d5215a2ed16-367524434.us-east-1.elb.amazonaws.com/targeting}
-BASE_URL_EVALUATION=${BASE_URL_EVALUATION:-http://ac297df31845e4e4998e7d5215a2ed16-367524434.us-east-1.elb.amazonaws.com/evaluation}
-BASE_URL_ANALYTICS=${BASE_URL_ANALYTICS:-http://ac297df31845e4e4998e7d5215a2ed16-367524434.us-east-1.elb.amazonaws.com/analytics}
+BASE_URL_AUTH=${BASE_URL_AUTH:-http://ab35f959cf2a543859bb3faf3c1d097f-1907321458.us-east-1.elb.amazonaws.com/auth}
+BASE_URL_FLAG=${BASE_URL_FLAG:-http://ab35f959cf2a543859bb3faf3c1d097f-1907321458.us-east-1.elb.amazonaws.com/flags}
+BASE_URL_TARGETING=${BASE_URL_TARGETING:-http://ab35f959cf2a543859bb3faf3c1d097f-1907321458.us-east-1.elb.amazonaws.com/targeting}
+BASE_URL_EVALUATION=${BASE_URL_EVALUATION:-http://ab35f959cf2a543859bb3faf3c1d097f-1907321458.us-east-1.elb.amazonaws.com/evaluation}
+BASE_URL_ANALYTICS=${BASE_URL_ANALYTICS:-http://ab35f959cf2a543859bb3faf3c1d097f-1907321458.us-east-1.elb.amazonaws.com/analytics}
 
 MASTER_KEY=${MASTER_KEY:-admin-secreto-123}
 

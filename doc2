@@ -29,11 +29,18 @@ terraform destroy
 terraform show
 terraform state list
 
+kubectl apply -f k8s/analytics-service/configmap.yaml
+kubectl apply -f k8s/evaluation-service/secret.yaml
+kubectl apply -f k8s/analytics-service/deployment.yaml
+kubectl apply -f k8s/analytics-service/service.yaml
+kubectl apply -f k8s/analytics-service/keda-auth.yaml
+kubectl apply -f k8s/analytics-service/scaledobject.yaml
+
 kubectl get pods -n toggle-prod
 
 kubectl apply -f k8s/flag-service/secret.yaml
 
-kubectl rollout restart deployment flag-service -n toggle-prod
+kubectl rollout restart deployment evaluation-service -n toggle-prod
 
 kubectl logs targeting-service-6645cf9c84-jx7bd -n toggle-prod
 
