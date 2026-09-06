@@ -3,11 +3,16 @@ ver o que tem no lab
 
 configura as credenciais no lab
 aws configure --profile lab
+aws configure --profile prod
 
 muda pára o lab
 aws sts get-caller-identity --profile lab
 
+muda para prod
+aws sts get-caller-identity --profile prod
+
 export AWS_PROFILE=lab
+export AWS_PROFILE=prod
 
 ativa o terraform
 terraform init
@@ -23,6 +28,16 @@ terraform destroy
 
 terraform show
 terraform state list
+
+kubectl get pods -n toggle-prod
+
+kubectl apply -f k8s/flag-service/secret.yaml
+
+kubectl rollout restart deployment flag-service -n toggle-prod
+
+kubectl logs targeting-service-6645cf9c84-jx7bd -n toggle-prod
+
+kubectl describe pod flag-service-5c867dc94d-4qkdt -n toggle-prod
 
 
 criando o bucket de terraform
