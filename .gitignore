@@ -10,6 +10,11 @@ k8s/flag-service/secret.yaml
 k8s/analytics-service/secret.yaml
 k8s/targeting-service/secret.yaml
 k8s/evaluation-service/secret.yaml
+k8s/auth-service/.env
+k8s/flag-service/.env
+k8s/analytics-service/.env
+k8s/targeting-service/.env
+k8s/evaluation-service/.env
 k8s/senhas
 k8s/comandos
 k8s/ECR

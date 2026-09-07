@@ -29,6 +29,8 @@ terraform destroy
 terraform show
 terraform state list
 
+envsubst < k8s/auth-service/secret.yaml | kubectl apply -f -
+
 kubectl apply -f k8s/analytics-service/configmap.yaml
 kubectl apply -f k8s/evaluation-service/secret.yaml
 kubectl apply -f k8s/analytics-service/deployment.yaml
@@ -38,13 +40,15 @@ kubectl apply -f k8s/analytics-service/scaledobject.yaml
 
 kubectl get pods -n toggle-prod
 
+kubectl get pods -A
+
 kubectl apply -f k8s/flag-service/secret.yaml
 
 kubectl rollout restart deployment evaluation-service -n toggle-prod
 
 kubectl logs targeting-service-6645cf9c84-jx7bd -n toggle-prod
 
-kubectl describe pod flag-service-5c867dc94d-4qkdt -n toggle-prod
+kubectl describe pod auth-service-78c86d9d55-vfslv -n toggle-prod
 
 
 criando o bucket de terraform
