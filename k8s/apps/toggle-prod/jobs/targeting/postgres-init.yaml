@@ -1,0 +1,82 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: targeting-db-init
+  namespace: toggle-prod
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+
+spec:
+  backoffLimit: 3
+
+  template:
+    metadata:
+      labels:
+        app: targeting-db-init
+
+    spec:
+      restartPolicy: OnFailure
+
+      containers:
+        - name: postgres-init
+          image: postgres:16
+
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: flag-secret
+                  key: DATABASE_URL
+
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+
+              echo "Verificando se targeting_db existe..."
+
+              DB_EXISTS=$(psql "$DATABASE_URL" -tAc \
+                "SELECT 1 FROM pg_database WHERE datname = 'targeting_db';")
+
+              if [ "$DB_EXISTS" != "1" ]; then
+                echo "targeting_db não existe. Criando..."
+
+                psql "$DATABASE_URL" -c \
+                  "CREATE DATABASE targeting_db;"
+              else
+                echo "targeting_db já existe."
+              fi
+
+              echo "Criando tabela targeting_rules..."
+
+              TARGETING_URL=$(echo "$DATABASE_URL" | sed 's#/flag_db$#/targeting_db#')
+
+              psql "$TARGETING_URL" <<'SQL'
+              CREATE TABLE IF NOT EXISTS targeting_rules (
+                  id SERIAL PRIMARY KEY,
+                  flag_name VARCHAR(100) UNIQUE NOT NULL,
+                  is_enabled BOOLEAN NOT NULL DEFAULT true,
+                  rules JSONB NOT NULL,
+                  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+              );
+
+              CREATE OR REPLACE FUNCTION trigger_set_timestamp()
+              RETURNS TRIGGER AS $$
+              BEGIN
+                NEW.updated_at = NOW();
+                RETURN NEW;
+              END;
+              $$ LANGUAGE plpgsql;
+
+              DROP TRIGGER IF EXISTS set_timestamp ON targeting_rules;
+
+              CREATE TRIGGER set_timestamp
+              BEFORE UPDATE ON targeting_rules
+              FOR EACH ROW
+              EXECUTE PROCEDURE trigger_set_timestamp();
+              SQL
+
+              echo "targeting_db inicializado com sucesso."
