@@ -44,7 +44,9 @@ spec:
 
             - secretRef:
                 name: auth-secret
-
+              
+            - secretRef:
+                name: auth-master-key
 
           resources:
 
