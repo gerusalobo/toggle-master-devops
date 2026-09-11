@@ -6,7 +6,7 @@ metadata:
   annotations:
     argocd.argoproj.io/hook: PreSync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
-    app.kubernetes.io/version: "2"
+    argocd.argoproj.io/sync-wave: "2"
 
 spec:
   backoffLimit: 3
@@ -27,7 +27,7 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: flag-secret
+                  name: targeting-secret
                   key: DATABASE_URL
 
           command:
@@ -36,25 +36,10 @@ spec:
             - |
               set -e
 
-              echo "Verificando se targeting_db existe..."
-
-              DB_EXISTS=$(psql "$DATABASE_URL" -tAc \
-                "SELECT 1 FROM pg_database WHERE datname = 'targeting_db';")
-
-              if [ "$DB_EXISTS" != "1" ]; then
-                echo "targeting_db não existe. Criando..."
-
-                psql "$DATABASE_URL" -c \
-                  "CREATE DATABASE targeting_db;"
-              else
-                echo "targeting_db já existe."
-              fi
-
               echo "Criando tabela targeting_rules..."
 
-              TARGETING_URL=$(echo "$DATABASE_URL" | sed 's#/flag_db$#/targeting_db#')
+              psql -v ON_ERROR_STOP=1 "$DATABASE_URL" <<'SQL'
 
-              psql -v ON_ERROR_STOP=1 "$TARGETING_URL" <<'SQL'
               CREATE TABLE IF NOT EXISTS targeting_rules (
                   id SERIAL PRIMARY KEY,
                   flag_name VARCHAR(100) UNIQUE NOT NULL,
@@ -78,6 +63,7 @@ spec:
               BEFORE UPDATE ON targeting_rules
               FOR EACH ROW
               EXECUTE PROCEDURE trigger_set_timestamp();
+
               SQL
 
-              echo "targeting_db inicializado com sucesso."
+              echo "targeting_rules inicializada com sucesso."
