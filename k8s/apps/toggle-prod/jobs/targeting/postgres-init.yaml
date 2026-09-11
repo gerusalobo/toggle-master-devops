@@ -53,7 +53,7 @@ spec:
 
               TARGETING_URL=$(echo "$DATABASE_URL" | sed 's#/flag_db$#/targeting_db#')
 
-              psql "$TARGETING_URL" <<'SQL'
+              psql -v ON_ERROR_STOP=1 "$TARGETING_URL" <<'SQL'
               CREATE TABLE IF NOT EXISTS targeting_rules (
                   id SERIAL PRIMARY KEY,
                   flag_name VARCHAR(100) UNIQUE NOT NULL,
@@ -64,7 +64,7 @@ spec:
               );
 
               CREATE OR REPLACE FUNCTION trigger_set_timestamp()
-              RETURNS TRIGGER AS $$
+              RETURNS TRIGGER AS \$\$
               BEGIN
                 NEW.updated_at = NOW();
                 RETURN NEW;
