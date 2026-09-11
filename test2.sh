@@ -4,7 +4,16 @@
 # CONFIGURAÇÃO
 ########################################
 
-BASE_URL=${BASE_URL:-http://a512b8dd72e964beeb9c882af4cee63e-1621789250.us-east-1.elb.amazonaws.com}
+INGRESS_HOST=$(kubectl get ingress togglemaster-ingress \
+  -n toggle-prod \
+  -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+if [ -z "$INGRESS_HOST" ]; then
+    echo "ERRO: não foi possível obter o endereço do Ingress."
+    exit 1
+fi
+
+BASE_URL="http://$INGRESS_HOST"
 
 BASE_URL_AUTH=${BASE_URL}/auth
 BASE_URL_FLAG=${BASE_URL}/flags
@@ -12,7 +21,14 @@ BASE_URL_TARGETING=${BASE_URL}/targeting
 BASE_URL_EVALUATION=${BASE_URL}/evaluation
 BASE_URL_ANALYTICS=${BASE_URL}/analytics
 
-MASTER_KEY=${MASTER_KEY:-admin-secreto-123}
+MASTER_KEY=$(kubectl get secret auth-master-key \
+  -n toggle-prod \
+  -o jsonpath='{.data.MASTER_KEY}' | base64 -d)
+
+if [ -z "$MASTER_KEY" ]; then
+    echo "ERRO: não foi possível obter a MASTER_KEY."
+    exit 1
+fi
 
 FLAG_NAME="enable-new-dashboard-$(date +%s)"
 
@@ -77,7 +93,7 @@ echo "========================================"
 HTTP_CODE=$(curl -s -o response.json -w "%{http_code}" \
 -X POST "$BASE_URL_AUTH/admin/keys" \
 -H "Content-Type: application/json" \
--H "Authorization: Bearer admin-secreto-123" \
+-H "Authorization: Bearer $MASTER_KEY" \
 -d '{"name":"teste-automacao"}')
 
 if [ "$HTTP_CODE" != "201" ]; then
