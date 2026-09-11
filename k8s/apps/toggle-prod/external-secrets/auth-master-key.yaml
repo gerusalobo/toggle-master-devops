@@ -3,6 +3,8 @@ kind: ExternalSecret
 metadata:
   name: auth-master-key
   namespace: toggle-prod
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   refreshInterval: 1h
 

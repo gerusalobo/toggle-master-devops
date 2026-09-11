@@ -4,6 +4,8 @@ kind: ExternalSecret
 metadata:
   name: flag-db
   namespace: toggle-prod
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 
 spec:
   refreshInterval: 1h
