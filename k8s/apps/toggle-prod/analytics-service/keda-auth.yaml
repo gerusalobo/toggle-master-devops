@@ -1,0 +1,11 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+
+metadata:
+  name: analytics-aws-auth
+  namespace: toggle-prod
+
+spec:
+  podIdentity:
+    provider: aws
+    identityOwner: workload
