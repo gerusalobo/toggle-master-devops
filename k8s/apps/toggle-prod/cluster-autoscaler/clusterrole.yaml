@@ -45,6 +45,7 @@ rules:
       - daemonsets
       - replicasets
       - deployments
+      - statefulsets
     verbs:
       - get
       - list
@@ -70,6 +71,7 @@ rules:
       - csinodes
       - storageclasses
       - csidrivers
+      - csistoragecapacities
       - volumeattachments
     verbs:
       - get
