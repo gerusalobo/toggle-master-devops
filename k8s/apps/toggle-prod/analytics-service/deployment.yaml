@@ -48,9 +48,6 @@ spec:
 
             - secretRef:
                 name: analytics-runtime-config
-            
-            - secretRef:
-                name: analytics-secret
 
 
           resources:
