@@ -4,12 +4,56 @@ metadata:
   name: cluster-autoscaler
 
 rules:
+  # Events e endpoints
   - apiGroups: [""]
     resources:
-      - pods
+      - events
+      - endpoints
+    verbs:
+      - create
+      - patch
+
+  # Eviction de pods
+  - apiGroups: [""]
+    resources:
+      - pods/eviction
+    verbs:
+      - create
+
+  # Atualização do status dos pods
+  - apiGroups: [""]
+    resources:
+      - pods/status
+    verbs:
+      - update
+
+  # Endpoint utilizado pelo Cluster Autoscaler
+  - apiGroups: [""]
+    resources:
+      - endpoints
+    resourceNames:
+      - cluster-autoscaler
+    verbs:
+      - get
+      - update
+
+  # Nodes
+  - apiGroups: [""]
+    resources:
       - nodes
-      - replicationcontrollers
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+
+  # Recursos básicos do cluster
+  - apiGroups: [""]
+    resources:
+      - namespaces
+      - pods
       - services
+      - replicationcontrollers
       - persistentvolumeclaims
       - persistentvolumes
     verbs:
@@ -17,47 +61,17 @@ rules:
       - list
       - watch
 
-  - apiGroups: [""]
+  # ReplicaSets e DaemonSets - API antiga
+  - apiGroups: ["extensions"]
     resources:
-      - namespaces
-    verbs:
-      - get
-      - list
-      - watch
-
-  - apiGroups: [""]
-    resources:
-      - endpoints
-      - events
-    verbs:
-      - create
-      - patch
-      - update
-
-  - apiGroups: [""]
-    resources:
-      - pods/status
-    verbs:
-      - update
-
-  - apiGroups: ["apps"]
-    resources:
-      - daemonsets
       - replicasets
-      - deployments
-      - statefulsets
+      - daemonsets
     verbs:
       - get
       - list
       - watch
 
-  - apiGroups: ["apps"]
-    resources:
-      - daemonsets/status
-      - replicasets/status
-    verbs:
-      - update
-
+  # PodDisruptionBudgets
   - apiGroups: ["policy"]
     resources:
       - poddisruptionbudgets
@@ -66,10 +80,33 @@ rules:
       - list
       - watch
 
+  # Workloads - API atual
+  - apiGroups: ["apps"]
+    resources:
+      - statefulsets
+      - replicasets
+      - daemonsets
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Resource APIs do Kubernetes 1.36
+  - apiGroups: ["resource.k8s.io"]
+    resources:
+      - deviceclasses
+      - resourceslices
+      - resourceclaims
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Storage
   - apiGroups: ["storage.k8s.io"]
     resources:
-      - csinodes
       - storageclasses
+      - csinodes
       - csidrivers
       - csistoragecapacities
       - volumeattachments
@@ -78,36 +115,30 @@ rules:
       - list
       - watch
 
-  - apiGroups: ["resource.k8s.io"]
-    resources:
-      - resourceclaims
-      - resourceslices
-      - deviceclasses
-    verbs:
-      - get
-      - list
-      - watch
-
-  - apiGroups: ["autoscaling"]
-    resources:
-      - horizontalpodautoscalers
-    verbs:
-      - get
-      - list
-      - watch
-
-  - apiGroups: ["batch"]
+  # Jobs
+  - apiGroups:
+      - batch
+      - extensions
     resources:
       - jobs
     verbs:
       - get
       - list
       - watch
+      - patch
 
+  # Leader election
   - apiGroups: ["coordination.k8s.io"]
     resources:
       - leases
     verbs:
-      - get
       - create
+
+  - apiGroups: ["coordination.k8s.io"]
+    resourceNames:
+      - cluster-autoscaler
+    resources:
+      - leases
+    verbs:
+      - get
       - update
