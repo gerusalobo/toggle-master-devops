@@ -25,6 +25,8 @@ spec:
 
     spec:
 
+      serviceAccountName: evaluation-service
+
       containers:
 
         - name: evaluation-service
